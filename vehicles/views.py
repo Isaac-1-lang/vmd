@@ -1,10 +1,8 @@
 # Create your views here.
-import pandas as pd
-
 from django.conf import settings
 from django.shortcuts import render
 
-from .dashboard import frequency_table
+from .dashboard import build_dashboard, frequency_table, load_dataset
 
 
 def dashboard_view(request):
@@ -14,14 +12,34 @@ def dashboard_view(request):
         / "vehicles_ml_dataset.csv"
     )
 
-    df = pd.read_csv(csv_path)
+    raw, clean, quality = load_dataset(csv_path)
 
-    table_html = frequency_table(df)
+    years = sorted(int(y) for y in clean["retail_year"].unique())
+    manufacturers = sorted(clean["manufacturer"].unique())
+
+    try:
+        year = int(request.GET.get("year", ""))
+    except ValueError:
+        year = None
+    if year not in years:
+        year = None
+
+    manufacturer = request.GET.get("make") or None
+    if manufacturer not in manufacturers:
+        manufacturer = None
+
+    data = build_dashboard(clean, quality, year=year, manufacturer=manufacturer)
 
     return render(
         request,
         "vehicles/index.html",
         {
-            "frequency_table": table_html,
+            "data": data,
+            "charts": data.get("charts", {}),
+            "years": years,
+            "manufacturers": manufacturers,
+            "selected_year": year,
+            "selected_make": manufacturer,
+            "frequency_table": frequency_table(clean),
         },
     )

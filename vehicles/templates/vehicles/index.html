@@ -1,0 +1,591 @@
+{% load static dashboard_extras %}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vehicle Sales Analytics</title>
+  <script>
+    (function () {
+      var theme;
+      try { theme = localStorage.getItem("vd-theme"); } catch (e) {}
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'vehicles/css/dashboard.css' %}">
+</head>
+<body>
+<div class="page">
+  <div class="frame">
+
+    <!-- ===================== Top bar ===================== -->
+    <header class="topbar">
+      <a class="brand" href="{% url 'dashboard' %}">
+        <span class="brand__logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M5 19.5 7.6 12a3 3 0 0 1 2.8-2h11.2a3 3 0 0 1 2.8 2l2.6 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><rect x="3" y="18" width="26" height="7" rx="2.5" fill="currentColor"/><circle cx="9" cy="25.5" r="2.6" fill="var(--logo-wheel)"/><circle cx="23" cy="25.5" r="2.6" fill="var(--logo-wheel)"/></svg>
+        </span>
+        <span>
+          <strong>Vehicle Sales</strong>
+          <small>ML dataset analytics</small>
+        </span>
+      </a>
+
+      <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+        <button class="tab is-active" data-tab="overview" role="tab">Dashboard</button>
+        <button class="tab" data-tab="vehicles" role="tab">Vehicles</button>
+        <button class="tab" data-tab="clients" role="tab">Clients</button>
+        <button class="tab" data-tab="sales" role="tab">Sales</button>
+        <button class="tab" data-tab="statistics" role="tab">Statistics</button>
+      </nav>
+
+      <div class="topbar__right">
+        <div class="years" aria-label="Retail year">
+          <a class="year keep-hash {% if not selected_year %}is-active{% endif %}"
+             href="?{% if selected_make %}make={{ selected_make|urlencode }}{% endif %}">All</a>
+          {% for y in years %}
+            <a class="year keep-hash {% if y == selected_year %}is-active{% endif %}"
+               href="?year={{ y }}{% if selected_make %}&make={{ selected_make|urlencode }}{% endif %}">{{ y }}</a>
+          {% endfor %}
+        </div>
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button data-theme-set="dark" title="Dark theme" aria-label="Dark theme">
+            <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor"/></svg>
+          </button>
+          <button data-theme-set="dim" title="Dim theme" aria-label="Dim theme">
+            <svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.6 11 3.5 3.5 0 0 0 7 18Z" fill="currentColor"/></svg>
+          </button>
+          <button data-theme-set="light" title="Light theme" aria-label="Light theme">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===================== Filter strip ===================== -->
+    <section class="filterbar">
+      <div class="filterbar__title">
+        <h1>{% if selected_make %}{{ selected_make }}{% else %}All manufacturers{% endif %}
+          <span>· {% if selected_year %}{{ selected_year }}{% else %}all years{% endif %}</span></h1>
+        {% if not data.empty %}
+          <p>{{ data.kpis.transactions|num }} transactions from {{ data.kpis.date_from }} to {{ data.kpis.date_to }}</p>
+        {% endif %}
+      </div>
+      <form class="filterbar__form" method="get">
+        {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+        <label class="select">
+          <span>Manufacturer</span>
+          <select name="make" onchange="this.form.submit()">
+            <option value="">All manufacturers</option>
+            {% for m in manufacturers %}
+              <option value="{{ m }}" {% if m == selected_make %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% if selected_year or selected_make %}
+          <a class="btn-ghost keep-hash" href="?">Reset filters</a>
+        {% endif %}
+      </form>
+    </section>
+
+    {% if data.empty %}
+      <div class="card empty-state">
+        <h2>No sales match these filters</h2>
+        <p>Try another year or manufacturer.</p>
+        <a class="btn-ghost" href="?">Reset filters</a>
+      </div>
+    {% else %}
+
+    <!-- ===================== KPI strip ===================== -->
+    <section class="kpis">
+      <div class="kpi"><span class="kpi__label">Transactions</span><strong>{{ data.kpis.transactions|num }}</strong><small>{{ data.kpis.countries }} countries</small></div>
+      <div class="kpi"><span class="kpi__label">Avg selling price</span><strong>{{ data.kpis.avg_price|money }}</strong><small>median {{ data.kpis.median_price|money }}</small></div>
+      <div class="kpi"><span class="kpi__label">Avg wholesale</span><strong>{{ data.kpis.avg_wholesale|money }}</strong><small>cost {{ data.kpis.cost|compact }}</small></div>
+      <div class="kpi"><span class="kpi__label">Avg profit / sale</span><strong>{{ data.kpis.avg_profit|money }}</strong><small>{{ data.kpis.margin }}% margin</small></div>
+      <div class="kpi"><span class="kpi__label">Avg km driven</span><strong>{{ data.kpis.avg_km|num }}</strong><small>{{ data.kpis.active_share }}% active</small></div>
+      <div class="kpi"><span class="kpi__label">Avg client age</span><strong>{{ data.kpis.avg_age }}</strong><small>income {{ data.kpis.avg_income|money }}</small></div>
+    </section>
+
+    <!-- ===================== OVERVIEW ===================== -->
+    <section class="panel is-active" data-panel="overview">
+      <div class="grid">
+
+        <article class="card card--hero span-3">
+          <div class="hero__row">
+            <span class="card__title">Revenue</span>
+            <strong class="hero__value">{{ data.kpis.revenue|compact }}</strong>
+            <span class="hero__chip" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10.5h18" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+          </div>
+          <div class="hero__dots">•••• •••• •••• {{ data.kpis.transactions }}</div>
+          <div class="hero__mid">
+            <div>
+              <strong class="hero__big">{{ data.kpis.profit|compact }}</strong>
+              <span class="hero__caption">Total profit</span>
+            </div>
+            <div class="ring" style="--p: {{ data.kpis.margin }}" title="Profit margin">
+              <span>{{ data.kpis.margin|floatformat:0 }}%</span>
+            </div>
+          </div>
+          <span class="hero__caption hero__caption--right">Profit margin</span>
+          <div class="chart chart--spark"><canvas data-chart="spark" aria-label="Monthly revenue trend"></canvas></div>
+          <div class="hero__foot">
+            {% if data.kpis.revenue_change is not None %}
+              Change vs {{ selected_year|add:"-1" }}
+              <span class="delta {% if data.kpis.revenue_change < 0 %}is-down{% endif %}">
+                {% if data.kpis.revenue_change >= 0 %}+{% endif %}{{ data.kpis.revenue_change }}%
+              </span>
+            {% else %}
+              Avg per sale <span class="delta">{{ data.kpis.avg_price|money }}</span>
+            {% endif %}
+          </div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head">
+            <h2 class="card__title">Monthly performance</h2>
+            <div class="segmented" data-target="month">
+              <button data-metric="count" class="is-active">Sales</button>
+              <button data-metric="revenue">Revenue</button>
+              <button data-metric="profit">Profit</button>
+            </div>
+            <strong class="card__figure" id="month-total">{{ data.kpis.transactions|num }}</strong>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="month" aria-label="Sales by calendar month"></canvas></div>
+          <p class="card__note">Highlighted bars mark the three strongest months.</p>
+        </article>
+
+        <article class="card span-3">
+          <header class="card__head card__head--stack">
+            <h2 class="card__title">Structure</h2>
+            <span class="card__sub">Sales by body type</span>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="radar" aria-label="Sales by body type radar"></canvas></div>
+        </article>
+
+        <article class="card span-3">
+          <header class="card__head">
+            <h2 class="card__title">Manufacturers</h2>
+            <strong class="card__figure">{{ data.manufacturer_rows|length }}</strong>
+          </header>
+          <ul class="goal-list">
+            {% for row in data.manufacturer_rows %}
+              <li>
+                <span class="goal-list__icon">{{ row.label|slice:":1" }}</span>
+                <div class="goal-list__body">
+                  <div class="goal-list__top">
+                    <span>{{ row.label }}</span>
+                    <span class="muted">{{ row.revenue|compact }}</span>
+                    <strong>{{ row.share }}%</strong>
+                  </div>
+                  <div class="bar"><span style="width: {{ row.rel_revenue }}%"></span></div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="card__note">Bar length is revenue relative to the leader.</p>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head">
+            <h2 class="card__title">Fuel &amp; drivetrain</h2>
+          </header>
+          <div class="budget">
+            <div class="chart chart--donut">
+              <canvas data-chart="fuel" aria-label="Sales share by fuel type"></canvas>
+              <div class="donut-center"><strong>{{ data.kpis.transactions|num }}</strong><span>vehicles</span></div>
+            </div>
+            <div class="budget__side">
+              <div class="split-bars">
+                {% for row in data.transmission_rows %}
+                  <div class="split-bars__row">
+                    <span class="split-bars__name">{{ row.label|pretty }}</span>
+                    <div class="bar"><span style="width: {{ row.share }}%"></span></div>
+                    <span class="split-bars__val">{{ row.share }}%</span>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="budget__bottom">
+                <table class="legend-table">
+                  {% for row in data.fuel_rows %}
+                    <tr>
+                      <td><i class="swatch" data-series="{{ forloop.counter0 }}"></i>{{ row.label|pretty }}</td>
+                      <td>{{ row.share }}%</td>
+                      <td>{{ row.revenue|compact }}</td>
+                    </tr>
+                  {% endfor %}
+                </table>
+                <div class="mini-stat">
+                  <strong>{{ data.kpis.avg_profit|money }}</strong>
+                  <span>Avg profit</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card span-3 row-2">
+          <header class="card__head">
+            <h2 class="card__title">Revenue by body</h2>
+          </header>
+          <div class="chart chart--donut chart--donut-lg">
+            <canvas data-chart="body" aria-label="Revenue by body type"></canvas>
+            <div class="donut-center"><strong>{{ data.kpis.revenue|compact }}</strong><span>Total</span></div>
+          </div>
+          <table class="legend-table legend-table--full">
+            {% for row in data.body_rows %}
+              <tr>
+                <td><i class="swatch" data-series="{{ forloop.counter0 }}"></i>{{ row.label }}</td>
+                <td>{{ row.revenue_share }}%</td>
+                <td>{{ row.revenue|compact }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+          <div class="body-stats">
+            {% for row in data.body_rows %}
+              <div><span>{{ row.label }}</span><strong>{{ row.avg_price|money }}</strong><small>avg price</small></div>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="card card--feature span-6">
+          <header class="card__head">
+            <h2 class="card__title">Compare over time</h2>
+            <div class="toggles" data-target="compare">
+              <label class="switch" data-series="0"><input type="checkbox" data-index="0" checked><span></span>Revenue</label>
+              <label class="switch" data-series="1"><input type="checkbox" data-index="1" checked><span></span>Cost</label>
+              <label class="switch" data-series="2"><input type="checkbox" data-index="2" checked><span></span>Profit</label>
+            </div>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="compare" aria-label="Monthly revenue, cost and profit"></canvas></div>
+        </article>
+
+        <article class="card card--feature span-3">
+          <header class="card__head">
+            <h2 class="card__title">Annual results</h2>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="annual" aria-label="Revenue and cost by retail year"></canvas></div>
+        </article>
+
+        <section class="insights span-12">
+          {% for item in data.insights %}
+            <div class="insight">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+              <small>{{ item.note }}</small>
+            </div>
+          {% endfor %}
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== VEHICLES ===================== -->
+    <section class="panel" data-panel="vehicles">
+      <div class="grid">
+        <article class="card span-8">
+          <header class="card__head">
+            <h2 class="card__title">Model year</h2>
+            <div class="segmented" data-target="modelYear">
+              <button data-metric="count" class="is-active">Units</button>
+              <button data-metric="avg_price">Avg price</button>
+            </div>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="modelYear" aria-label="Sales by model year"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head"><h2 class="card__title">Vehicle condition</h2></header>
+          <div class="chart chart--donut">
+            <canvas data-chart="condition" aria-label="Vehicle condition share"></canvas>
+            <div class="donut-center"><strong>{{ data.kpis.active_share }}%</strong><span>active</span></div>
+          </div>
+          <table class="legend-table legend-table--full">
+            {% for row in data.condition_rows %}
+              <tr><td><i class="swatch" data-series="{{ forloop.counter0 }}"></i>{{ row.label|pretty }}</td>
+                <td>{{ row.count|num }}</td><td>{{ row.avg_price|money }}</td></tr>
+            {% endfor %}
+          </table>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Engine × transmission</h2><span class="card__sub">Units sold</span></header>
+          <div class="chart chart--md"><canvas data-chart="engineTrans" aria-label="Engine type by transmission"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Seating capacity</h2><span class="card__sub">Units sold by seats</span></header>
+          <div class="chart chart--md"><canvas data-chart="seats" aria-label="Sales by seating capacity"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Kilometers driven</h2><span class="card__sub">Units per mileage band</span></header>
+          <div class="chart chart--md"><canvas data-chart="km" aria-label="Sales by kilometers driven"></canvas></div>
+        </article>
+
+        <article class="card span-8">
+          <header class="card__head card__head--stack">
+            <h2 class="card__title">Mileage vs selling price</h2>
+            <span class="card__sub">Random sample of {{ charts.scatter|length }} sales · Pearson r (all sales) = <span id="km-corr">–</span></span>
+          </header>
+          <div class="chart chart--lg"><canvas data-chart="scatter" aria-label="Kilometers driven versus selling price"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Top colors</h2><span class="card__sub">{{ data.kpis.colors }} distinct paint colors</span></header>
+          <ul class="color-list">
+            {% for row in data.color_rows %}
+              <li>
+                <i class="color-dot" style="background: {{ row.label }}"></i>
+                <span>{{ row.label }}</span>
+                <div class="bar"><span style="width: {{ row.rel_count }}%"></span></div>
+                <strong>{{ row.count }}</strong>
+              </li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Manufacturer × body type</h2><span class="card__sub">Revenue · darker = more</span></header>
+          <div class="heatmap" data-heatmap="makeBody"></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Engine × fuel type</h2><span class="card__sub">Units sold · darker = more</span></header>
+          <div class="heatmap" data-heatmap="fuelEngine"></div>
+        </article>
+
+        <article class="card span-12">
+          <header class="card__head"><h2 class="card__title">Manufacturer breakdown</h2></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Manufacturer</th><th>Units</th><th>Share</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Avg wholesale</th><th>Avg price</th><th>Avg margin</th></tr></thead>
+              <tbody>
+                {% for row in data.manufacturer_rows %}
+                  <tr><td><strong>{{ row.label }}</strong></td><td>{{ row.count|num }}</td><td>{{ row.share }}%</td><td>{{ row.revenue|money }}</td><td>{{ row.cost|money }}</td><td>{{ row.profit|money }}</td><td>{{ row.avg_wholesale|money }}</td><td>{{ row.avg_price|money }}</td><td>{{ row.avg_margin }}%</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== CLIENTS ===================== -->
+    <section class="panel" data-panel="clients">
+      <div class="grid">
+        <article class="card span-3">
+          <header class="card__head"><h2 class="card__title">Gender</h2></header>
+          <div class="chart chart--donut">
+            <canvas data-chart="gender" aria-label="Clients by gender"></canvas>
+            <div class="donut-center"><strong>{{ data.kpis.transactions|num }}</strong><span>clients</span></div>
+          </div>
+          <table class="legend-table legend-table--full">
+            {% for row in data.gender_rows %}
+              <tr><td><i class="swatch" data-series="{{ forloop.counter0 }}"></i>{{ row.label }}</td>
+                <td>{{ row.share }}%</td><td>{{ row.avg_price|money }}</td></tr>
+            {% endfor %}
+          </table>
+        </article>
+
+        <article class="card span-5">
+          <header class="card__head card__head--stack"><h2 class="card__title">Age groups by gender</h2><span class="card__sub">Average client age {{ data.kpis.avg_age }}</span></header>
+          <div class="chart chart--md"><canvas data-chart="ageGender" aria-label="Client age groups by gender"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head">
+            <h2 class="card__title">Continents</h2>
+            <div class="segmented" data-target="continent">
+              <button data-metric="count" class="is-active">Buyers</button>
+              <button data-metric="revenue">Revenue</button>
+            </div>
+          </header>
+          <div class="chart chart--md"><canvas data-chart="continent" aria-label="Sales by continent"></canvas></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Estimated income</h2><span class="card__sub">Clients per monthly income band</span></header>
+          <div class="chart chart--md"><canvas data-chart="income" aria-label="Clients by income band"></canvas></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Avg income by continent</h2><span class="card__sub">Mean estimated income</span></header>
+          <div class="chart chart--md"><canvas data-chart="continentIncome" aria-label="Average income by continent"></canvas></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Top countries</h2><span class="card__sub">{{ data.kpis.countries }} countries in total</span></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Country</th><th>Buyers</th><th>Revenue</th><th>Avg price</th><th class="col-bar">Revenue</th></tr></thead>
+              <tbody>
+                {% for row in data.top_countries %}
+                  <tr><td class="muted">{{ forloop.counter }}</td><td><strong>{{ row.label }}</strong></td><td>{{ row.count }}</td><td>{{ row.revenue|money }}</td><td>{{ row.avg_price|money }}</td><td class="col-bar"><div class="bar"><span style="width: {{ row.rel_revenue }}%"></span></div></td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Top professions</h2><span class="card__sub">{{ data.kpis.professions }} professions in total</span></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Profession</th><th>Buyers</th><th>Revenue</th><th>Avg price</th><th class="col-bar">Revenue</th></tr></thead>
+              <tbody>
+                {% for row in data.top_professions %}
+                  <tr><td class="muted">{{ forloop.counter }}</td><td><strong>{{ row.label }}</strong></td><td>{{ row.count }}</td><td>{{ row.revenue|money }}</td><td>{{ row.avg_price|money }}</td><td class="col-bar"><div class="bar"><span style="width: {{ row.rel_revenue }}%"></span></div></td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== SALES ===================== -->
+    <section class="panel" data-panel="sales">
+      <div class="grid">
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Seasons</h2><span class="card__sub">Units sold per season</span></header>
+          <div class="chart chart--sm"><canvas data-chart="season" aria-label="Sales by season"></canvas></div>
+          <table class="legend-table legend-table--full">
+            <tr class="legend-table__head"><td>Season</td><td>Avg price</td><td>Margin</td></tr>
+            {% for row in data.season_rows %}
+              <tr><td>{{ row.label|pretty }}</td><td>{{ row.avg_price|money }}</td><td>{{ row.avg_margin }}%</td></tr>
+            {% endfor %}
+          </table>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Day of week</h2><span class="card__sub">Units sold per weekday</span></header>
+          <div class="chart chart--md"><canvas data-chart="weekday" aria-label="Sales by weekday"></canvas></div>
+        </article>
+
+        <article class="card span-4">
+          <header class="card__head card__head--stack"><h2 class="card__title">Profit margin</h2><span class="card__sub">Distribution of margin per sale</span></header>
+          <div class="chart chart--md"><canvas data-chart="margin" aria-label="Profit margin distribution"></canvas></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Wholesale vs selling price</h2><span class="card__sub">Average per manufacturer</span></header>
+          <div class="chart chart--md"><canvas data-chart="priceCompare" aria-label="Average wholesale and selling price by manufacturer"></canvas></div>
+        </article>
+
+        <article class="card span-6">
+          <header class="card__head card__head--stack"><h2 class="card__title">Selling price distribution</h2><span class="card__sub">Units per price band</span></header>
+          <div class="chart chart--md"><canvas data-chart="priceHist" aria-label="Selling price distribution"></canvas></div>
+        </article>
+
+        <article class="card span-7">
+          <header class="card__head card__head--stack"><h2 class="card__title">Most profitable segments</h2><span class="card__sub">Manufacturer + body type, by total profit</span></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Segment</th><th>Units</th><th>Revenue</th><th>Profit</th><th>Avg margin</th></tr></thead>
+              <tbody>
+                {% for row in data.top_segments %}
+                  <tr><td class="muted">{{ forloop.counter }}</td><td><strong>{{ row.manufacturer }}</strong> {{ row.body_type }}</td><td>{{ row.count }}</td><td>{{ row.revenue|money }}</td><td>{{ row.profit|money }}</td><td>{{ row.avg_margin }}%</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-5">
+          <header class="card__head card__head--stack"><h2 class="card__title">Profit per sale</h2><span class="card__sub">Distribution of selling − wholesale</span></header>
+          <div class="chart chart--lg"><canvas data-chart="profitHist" aria-label="Profit per sale distribution"></canvas></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== STATISTICS ===================== -->
+    <section class="panel" data-panel="statistics">
+      <div class="grid">
+        <article class="card span-12">
+          <header class="card__head card__head--stack"><h2 class="card__title">Descriptive statistics</h2><span class="card__sub">Numeric columns after cleaning</span></header>
+          <div class="table-wrap">
+            <table class="data-table data-table--num">
+              <thead><tr><th>Column</th><th>Count</th><th>Mean</th><th>Std</th><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th><th>Skew</th></tr></thead>
+              <tbody>
+                {% for row in data.describe_rows %}
+                  <tr><td><strong>{{ row.column }}</strong></td><td>{{ row.count|num }}</td><td>{{ row.mean|num:2 }}</td><td>{{ row.std|num:2 }}</td><td>{{ row.min|num:2 }}</td><td>{{ row.q1|num:2 }}</td><td>{{ row.median|num:2 }}</td><td>{{ row.q3|num:2 }}</td><td>{{ row.max|num:2 }}</td><td>{{ row.skew }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-7">
+          <header class="card__head card__head--stack"><h2 class="card__title">Correlation matrix</h2><span class="card__sub">Pearson r · <span class="key key--neg">negative</span> <span class="key key--pos">positive</span></span></header>
+          <div class="heatmap heatmap--corr" data-heatmap="correlation"></div>
+        </article>
+
+        <article class="card span-5">
+          <header class="card__head card__head--stack"><h2 class="card__title">Data quality</h2><span class="card__sub">Raw CSV vs cleaned dataset</span></header>
+          <div class="quality">
+            <div><strong>{{ data.quality.raw_rows|num }}</strong><span>raw rows</span></div>
+            <div><strong>{{ data.quality.clean_rows|num }}</strong><span>clean rows</span></div>
+            <div><strong>{{ data.quality.removed_rows|num }}</strong><span>removed</span></div>
+            <div><strong>{{ data.quality.column_count }}</strong><span>columns</span></div>
+          </div>
+          <table class="legend-table legend-table--full">
+            {% for item in data.quality.removed_reasons %}
+              <tr><td>{{ item.reason }}</td><td></td><td>{{ item.rows }}</td></tr>
+            {% endfor %}
+          </table>
+          {% if data.quality.constant_columns %}
+            <p class="callout">Constant column{{ data.quality.constant_columns|length|pluralize }}:
+              {% for c in data.quality.constant_columns %}<code>{{ c }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}
+              — a single value everywhere, so it carries no information for analysis or ML.</p>
+          {% endif %}
+          <h3 class="subhead">Manufacturer frequency</h3>
+          <div class="table-wrap pandas-table">{{ frequency_table|safe }}</div>
+        </article>
+
+        <article class="card span-12">
+          <header class="card__head card__head--stack"><h2 class="card__title">Column profile</h2><span class="card__sub">Raw CSV, before cleaning</span></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Column</th><th>Type</th><th>Missing</th><th>Unique values</th><th>Note</th></tr></thead>
+              <tbody>
+                {% for col in data.quality.columns %}
+                  <tr><td><strong>{{ col.name }}</strong></td><td><code>{{ col.dtype }}</code></td><td>{{ col.missing }}</td><td>{{ col.unique|num }}</td>
+                    <td>{% if col.constant %}<span class="tag">constant</span>{% elif col.missing %}<span class="tag tag--warn">has missing</span>{% endif %}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-12">
+          <header class="card__head card__head--stack"><h2 class="card__title">Latest transactions</h2><span class="card__sub">Most recent retail dates in the selection</span></header>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Client</th><th>Country</th><th>Vehicle</th><th>Model year</th><th>Fuel</th><th>Price</th><th>Profit</th></tr></thead>
+              <tbody>
+                {% for row in data.recent_rows %}
+                  <tr><td>{{ row.date }}</td><td><strong>{{ row.client }}</strong></td><td>{{ row.country }}</td><td>{{ row.vehicle }}</td><td>{{ row.model_year }}</td><td>{{ row.fuel|pretty }}</td><td>{{ row.price|money }}</td><td>{{ row.profit|money }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+    {% endif %}
+
+    <footer class="footer">Source: <code>dummy_data/vehicles_ml_dataset.csv</code> · processed with pandas</footer>
+  </div>
+</div>
+
+{{ charts|json_script:"chart-data" }}
+{{ selected_year|json_script:"selected-year" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'vehicles/js/dashboard.js' %}"></script>
+</body>
+</html>
