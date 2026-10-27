@@ -142,10 +142,19 @@ def get_selling_price_by_manufacturer(df):
 def get_high_price_rows(df):
     high_price_cars = (
         df.loc[df["selling_price"] > 5000]
-        .sort_values("selling_price", ascending=False)
+        .sort_values(["manufacturer", "selling_price"], ascending=[True, False], kind="stable")
         .head(100)
     )
-    return high_price_cars.columns.tolist(), high_price_cars.to_dict("records")
+    columns = [column for column in high_price_cars.columns if column != "manufacturer"]
+    groups = []
+    for manufacturer, rows in high_price_cars.groupby("manufacturer", sort=False):
+        groups.append(
+            {
+                "manufacturer": manufacturer,
+                "rows": rows.drop(columns="manufacturer").to_dict("records"),
+            }
+        )
+    return columns, groups
 
 
 def build_dashboard(df, year=None, manufacturer=None):

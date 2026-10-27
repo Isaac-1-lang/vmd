@@ -135,12 +135,17 @@
               <div class="card-header">All dataset columns for matching vehicles</div>
               <div class="card-body table-responsive">
                 <table class="table table-sm table-striped table-hover align-middle mb-0">
-                  <thead><tr>{% for column in data.high_price_columns %}<th>{{ column|pretty }}</th>{% endfor %}</tr></thead>
+                  <thead><tr><th>Manufacturer</th>{% for column in data.high_price_columns %}<th>{{ column|pretty }}</th>{% endfor %}</tr></thead>
                   <tbody>
-                    {% for row in data.high_price_rows %}
-                      <tr>{% for key, value in row.items %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% for group in data.high_price_rows %}
+                      {% for row in group.rows %}
+                        <tr>
+                          {% if forloop.first %}<th scope="rowgroup" rowspan="{{ group.rows|length }}">{{ group.manufacturer }}</th>{% endif %}
+                          {% for key, value in row.items %}<td>{{ value }}</td>{% endfor %}
+                        </tr>
+                      {% endfor %}
                     {% empty %}
-                      <tr><td colspan="{{ data.high_price_columns|length }}">No vehicles above $5,000 match these filters.</td></tr>
+                      <tr><td colspan="{{ data.high_price_columns|length|add:1 }}">No vehicles above $5,000 match these filters.</td></tr>
                     {% endfor %}
                   </tbody>
                 </table>
