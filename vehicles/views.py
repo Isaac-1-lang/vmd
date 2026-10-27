@@ -40,6 +40,8 @@ def dashboard_view(request):
             "manufacturers": manufacturers,
             "selected_year": year,
             "selected_make": manufacturer,
-            "frequency_table": frequency_table(clean),
+            "frequency_table": frequency_table(
+                clean[clean["retail_year"] == year] if year else clean
+            ),
         },
     )

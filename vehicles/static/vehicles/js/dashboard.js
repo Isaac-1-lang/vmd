@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Vehicle Sales Analytics — charts, tabs and theme switching.
+   Vehicle Sales Analytics — charts and theme switching.
    Chart colors are read from CSS custom properties on each canvas, so every
    chart matches the card (light or dark) it is drawn in.
    ========================================================================== */
@@ -777,6 +777,7 @@
   const instances = new Map();
 
   function renderPanel(panel) {
+    if (!panel) return;
     panel.querySelectorAll("canvas[data-chart]").forEach((canvas) => {
       if (instances.has(canvas)) return;
       const build = builders[canvas.dataset.chart];
@@ -799,41 +800,6 @@
     instances.forEach((chart) => chart.destroy());
     instances.clear();
     renderPanel(document.querySelector(".panel.is-active"));
-  }
-
-  /* Tabs ------------------------------------------------------------- */
-  const tabs = document.querySelectorAll(".tab");
-  const panels = document.querySelectorAll(".panel");
-
-  function activate(name, updateHash) {
-    const panel = document.querySelector(`.panel[data-panel="${name}"]`);
-    if (!panel) return;
-    tabs.forEach((t) => t.classList.toggle("is-active", t.dataset.tab === name));
-    tabs.forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name));
-    panels.forEach((p) => p.classList.toggle("is-active", p === panel));
-    renderPanel(panel);
-    if (updateHash) history.replaceState(null, "", "#" + name);
-  }
-
-  tabs.forEach((tab) => tab.addEventListener("click", () => activate(tab.dataset.tab, true)));
-  window.addEventListener("hashchange", () => activate(location.hash.replace("#", ""), false));
-
-  // keep the open tab when following filter links
-  document.querySelectorAll("a.keep-hash").forEach((a) => {
-    a.addEventListener("click", () => {
-      if (location.hash) a.href = a.href.split("#")[0] + location.hash;
-    });
-  });
-  const makeForm = document.querySelector(".filterbar__form");
-  if (makeForm) {
-    makeForm.addEventListener("submit", () => {
-      if (location.hash) makeForm.action = location.pathname + location.hash;
-    });
-    const select = makeForm.querySelector("select");
-    if (select) select.onchange = () => {
-      if (location.hash) makeForm.action = location.pathname + location.hash;
-      makeForm.submit();
-    };
   }
 
   /* Segmented controls ------------------------------------------------ */
@@ -877,6 +843,5 @@
   markTheme();
 
   /* Initial render ---------------------------------------------------- */
-  const initial = location.hash.replace("#", "");
-  activate(document.querySelector(`.panel[data-panel="${initial}"]`) ? initial : "overview", false);
+  renderPanel(document.querySelector(".panel.is-active"));
 })();
