@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 import pandas as pd
 
 
@@ -42,12 +40,7 @@ def frequency_table(df):
 
 
 def load_dataset(csv_path):
-    """Load the cleaned data, reusing it until the CSV changes."""
-    return _load_cached(str(csv_path), csv_path.stat().st_mtime)
-
-
-@lru_cache(maxsize=1)
-def _load_cached(csv_path, _modified_time):
+    """Load and clean the vehicle dataset."""
     return clean_dataset(pd.read_csv(csv_path))
 
 
@@ -140,12 +133,17 @@ def get_selling_price_by_manufacturer(df):
 
 
 def get_high_price_rows(df):
-    high_price_cars = (
-        df.loc[df["selling_price"] > 5000]
-        .sort_values(["manufacturer", "selling_price"], ascending=[True, False], kind="stable")
-        .head(100)
-    )
-    columns = [column for column in high_price_cars.columns if column != "manufacturer"]
+    vehicle_columns = [
+        column
+        for column in df.columns
+        if (not column.startswith("client_") or column == "client_retail_date")
+        and column not in {"income_level", "estimated_income"}
+    ]
+    high_price_cars = df.loc[df["selling_price"] > 5000, vehicle_columns]
+    high_price_cars = high_price_cars.sort_values(
+        ["manufacturer", "selling_price"], ascending=[True, False]
+    ).head(100)
+    columns = [column for column in vehicle_columns if column != "manufacturer"]
     groups = []
     for manufacturer, rows in high_price_cars.groupby("manufacturer", sort=False):
         groups.append(
