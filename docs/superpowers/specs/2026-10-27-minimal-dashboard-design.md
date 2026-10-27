@@ -6,7 +6,7 @@ Reduce visual and informational clutter so users can read the vehicle sales dash
 ## Goals
 - Keep the existing year and manufacturer filters.
 - Put a manufacturer frequency table at the top of the dashboard, visible immediately without scrolling.
-- Retain a small number of useful charts and tables after the leading table.
+- Remove every graph from the dashboard.
 - Remove redundant KPI cards and detail-heavy statistical views.
 
 ## Non-goals
@@ -15,10 +15,10 @@ Reduce visual and informational clutter so users can read the vehicle sales dash
 
 ## Approaches
 - Keep all tabs and trim every tab: preserves deep dives but leaves a multi-section dashboard.
-- Use one concise overview with a leading manufacturer frequency table (selected): gives the requested table immediate prominence while retaining a few useful sales visuals.
+- Use a graph-free overview with manufacturer frequency and revenue tables: keeps useful sales information in readable tabular form.
 
 ## Proposed design
-Use a single overview. Place a compact manufacturer frequency table directly beneath the page title and filters, before KPIs or charts. Include manufacturer and transaction count, with descending frequency order. Follow it with three KPIs (transactions, revenue, and profit), a monthly performance chart, a fuel mix chart, annual results, and a short manufacturer revenue table. Remove the other tabs and their dense statistical views and styling from the dashboard interface. Keep empty-filter messaging and theme styling intact.
+Use a single graph-free overview. Place a compact manufacturer frequency table directly beneath the page title and filters, before the KPI cards. Include manufacturer and transaction count, with descending frequency order. Follow it with three KPIs (transactions, revenue, and profit) and a short manufacturer revenue table. Remove all graph elements, chart libraries, chart data generation, other tabs, and dense statistical views from the dashboard. Keep empty-filter messaging and theme styling intact.
 
 ## Constraints and implementation calls
-Reuse current template, CSS, JavaScript, and server-provided data. Avoid changing data calculations or installing dependencies. This is a small UI-only change.
+Reuse the current template, CSS, and JavaScript. Keep only calculations needed by the two tables and KPI cards. No chart dependencies are needed. This is a small dashboard cleanup.

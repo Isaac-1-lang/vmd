@@ -1,4 +1,3 @@
-# Create your views here.
 from django.conf import settings
 from django.shortcuts import render
 
@@ -6,13 +5,9 @@ from .dashboard import build_dashboard, frequency_table, load_dataset
 
 
 def dashboard_view(request):
-    csv_path = (
-        settings.BASE_DIR
-        / "dummy_data"
-        / "vehicles_ml_dataset.csv"
-    )
+    csv_path = settings.BASE_DIR / "dummy_data" / "vehicles_ml_dataset.csv"
 
-    raw, clean, quality = load_dataset(csv_path)
+    clean = load_dataset(csv_path)
 
     years = sorted(int(y) for y in clean["retail_year"].unique())
     manufacturers = sorted(clean["manufacturer"].unique())
@@ -28,14 +23,13 @@ def dashboard_view(request):
     if manufacturer not in manufacturers:
         manufacturer = None
 
-    data = build_dashboard(clean, quality, year=year, manufacturer=manufacturer)
+    data = build_dashboard(clean, year=year, manufacturer=manufacturer)
 
     return render(
         request,
         "vehicles/index.html",
         {
             "data": data,
-            "charts": data.get("charts", {}),
             "years": years,
             "manufacturers": manufacturers,
             "selected_year": year,

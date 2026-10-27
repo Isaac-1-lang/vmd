@@ -1,171 +1,159 @@
 {% load static dashboard_extras %}<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vehicle Sales Analytics</title>
+  <title>Vehicle Sales Dashboard</title>
   <script>
     (function () {
-      var theme;
-      try { theme = localStorage.getItem("vd-theme"); } catch (e) {}
-      if (!theme) {
-        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-      }
-      document.documentElement.setAttribute("data-theme", theme);
+      var theme = "dark";
+      try { theme = localStorage.getItem("vd-theme") || theme; } catch (error) {}
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.setAttribute("data-bs-theme", theme === "dark" ? "dark" : "light");
     })();
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'vehicles/css/dashboard.css' %}?v=2">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'vehicles/css/dashboard.css' %}?v=4">
 </head>
 <body>
-<div class="page">
-  <div class="frame">
+<div class="container-fluid py-3 py-lg-4">
+  <header class="dashboard-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <a class="text-decoration-none text-body" href="{% url 'dashboard' %}">
+      <h1 class="h3 mb-0">Vehicle Sales Dashboard</h1>
+      <span class="small text-secondary">ML dataset analytics</span>
+    </a>
 
-    <!-- ===================== Top bar ===================== -->
-    <header class="topbar">
-      <a class="brand" href="{% url 'dashboard' %}">
-        <span class="brand__logo" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none"><path d="M5 19.5 7.6 12a3 3 0 0 1 2.8-2h11.2a3 3 0 0 1 2.8 2l2.6 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><rect x="3" y="18" width="26" height="7" rx="2.5" fill="currentColor"/><circle cx="9" cy="25.5" r="2.6" fill="var(--logo-wheel)"/><circle cx="23" cy="25.5" r="2.6" fill="var(--logo-wheel)"/></svg>
-        </span>
-        <span>
-          <strong>Vehicle Sales</strong>
-          <small>ML dataset analytics</small>
-        </span>
-      </a>
-      <div class="topbar__right">
-        <div class="years" aria-label="Retail year">
-          <a class="year {% if not selected_year %}is-active{% endif %}"
-             href="?{% if selected_make %}make={{ selected_make|urlencode }}{% endif %}">All</a>
-          {% for y in years %}
-            <a class="year {% if y == selected_year %}is-active{% endif %}"
-               href="?year={{ y }}{% if selected_make %}&make={{ selected_make|urlencode }}{% endif %}">{{ y }}</a>
-          {% endfor %}
-        </div>
-        <div class="theme-switch" role="group" aria-label="Theme">
-          <button data-theme-set="dark" title="Dark theme" aria-label="Dark theme">
-            <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor"/></svg>
-          </button>
-          <button data-theme-set="dim" title="Dim theme" aria-label="Dim theme">
-            <svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.6 11 3.5 3.5 0 0 0 7 18Z" fill="currentColor"/></svg>
-          </button>
-          <button data-theme-set="light" title="Light theme" aria-label="Light theme">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>
-    </header>
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <nav class="btn-group btn-group-sm" aria-label="Retail year">
+        <a class="btn btn-outline-primary {% if not selected_year %}active{% endif %}"
+           href="?{% if selected_make %}make={{ selected_make|urlencode }}{% endif %}">All years</a>
+        {% for y in years %}
+          <a class="btn btn-outline-primary {% if y == selected_year %}active{% endif %}"
+             href="?year={{ y }}{% if selected_make %}&make={{ selected_make|urlencode }}{% endif %}">{{ y }}</a>
+        {% endfor %}
+      </nav>
 
-    <!-- ===================== Filter strip ===================== -->
-    <section class="filterbar">
-      <div class="filterbar__title">
-        <h1>{% if selected_make %}{{ selected_make }}{% else %}All manufacturers{% endif %}
-          <span>· {% if selected_year %}{{ selected_year }}{% else %}all years{% endif %}</span></h1>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Theme">
+        <button class="btn btn-outline-secondary" type="button" data-theme-set="dark">Dark</button>
+        <button class="btn btn-outline-secondary" type="button" data-theme-set="dim">Dim</button>
+        <button class="btn btn-outline-secondary" type="button" data-theme-set="light">Light</button>
       </div>
-      <form class="filterbar__form" method="get">
+    </div>
+  </header>
+
+  <section class="filterbar card card-body mb-4">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+      <div>
+        <h2 class="h5 mb-1">{% if selected_make %}{{ selected_make }}{% else %}All manufacturers{% endif %}</h2>
+        <p class="text-secondary mb-0">Retail year: {% if selected_year %}{{ selected_year }}{% else %}all years{% endif %}</p>
+      </div>
+      <form class="d-flex flex-wrap align-items-end gap-2" method="get">
         {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
-        <label class="select">
-          <span>Manufacturer</span>
-          <select name="make" onchange="this.form.submit()">
+        <label class="form-label mb-0">
+          <span class="small text-secondary">Manufacturer</span>
+          <select class="form-select form-select-sm" name="make" onchange="this.form.submit()">
             <option value="">All manufacturers</option>
-            {% for m in manufacturers %}
-              <option value="{{ m }}" {% if m == selected_make %}selected{% endif %}>{{ m }}</option>
+            {% for manufacturer in manufacturers %}
+              <option value="{{ manufacturer }}" {% if manufacturer == selected_make %}selected{% endif %}>{{ manufacturer }}</option>
             {% endfor %}
           </select>
         </label>
-        {% if selected_year or selected_make %}
-          <a class="btn-ghost" href="?">Reset filters</a>
-        {% endif %}
+        {% if selected_year or selected_make %}<a class="btn btn-sm btn-outline-secondary" href="?">Reset filters</a>{% endif %}
       </form>
-    </section>
+    </div>
+  </section>
 
-    {% if data.empty %}
-      <div class="card empty-state">
-        <h2>No sales match these filters</h2>
-        <p>Try another year or manufacturer.</p>
-        <a class="btn-ghost" href="?">Reset filters</a>
+  {% if data.empty %}
+    <div class="card shadow-sm">
+      <div class="card-body text-center py-5">
+        <h2 class="h4">No sales match these filters</h2>
+        <p class="text-secondary">Try another year or manufacturer.</p>
+        <a class="btn btn-primary" href="?">Reset filters</a>
       </div>
-    {% else %}
+    </div>
+  {% else %}
+    <div class="row g-4">
+      <aside class="col-lg-3">
+        <nav id="dashboard-nav" class="list-group position-sticky top-0" aria-label="Dashboard sections">
+          <a class="list-group-item list-group-item-action" href="#summary-section">Summary</a>
+          <a class="list-group-item list-group-item-action" href="#manufacturers-section">Manufacturers</a>
+          <a class="list-group-item list-group-item-action" href="#high-price-section">High-price vehicles</a>
+        </nav>
+      </aside>
 
-    <!-- Manufacturer frequency leads the page for immediate visibility. -->
-    <section class="card frequency-card" aria-labelledby="frequency-title">
-      <header class="card__head">
-        <div>
-          <h2 class="card__title" id="frequency-title">Manufacturer frequency</h2>
-          <p class="card__sub">Sales count by manufacturer</p>
+      <main class="col-lg-9">
+        <div id="dashboard-content" class="dashboard-scroll" data-bs-spy="scroll" data-bs-target="#dashboard-nav" data-bs-smooth-scroll="true" tabindex="0">
+          <section id="summary-section" class="dashboard-section mb-5" aria-labelledby="summary-title">
+            <h2 class="h4 mb-3" id="summary-title">Summary</h2>
+            <div class="row g-3">
+              <div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="small text-secondary text-uppercase">Transactions</div><div class="h3 mb-0">{{ data.kpis.transactions|num }}</div></div></div></div>
+              <div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="small text-secondary text-uppercase">Revenue</div><div class="h3 mb-0">{{ data.kpis.revenue|compact }}</div></div></div></div>
+              <div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="small text-secondary text-uppercase">Total profit</div><div class="h3 mb-0">{{ data.kpis.profit|compact }}</div></div></div></div>
+            </div>
+          </section>
+
+          <section id="manufacturers-section" class="dashboard-section mb-5" aria-labelledby="manufacturers-title">
+            <h2 class="h4 mb-3" id="manufacturers-title">Manufacturers</h2>
+
+            <div class="card shadow-sm mb-4">
+              <div class="card-header fw-semibold">Manufacturer frequency</div>
+              <div class="card-body table-responsive">{{ frequency_table|safe }}</div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+              <div class="card-header fw-semibold">Top manufacturers by revenue</div>
+              <div class="card-body table-responsive">
+                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                  <thead><tr><th>Manufacturer</th><th>Sales</th><th>Revenue</th></tr></thead>
+                  <tbody>
+                    {% for row in data.manufacturer_rows|slice:":6" %}
+                      <tr><td><strong>{{ row.label }}</strong></td><td>{{ row.count|num }}</td><td>{{ row.revenue|compact }}</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card shadow-sm">
+              <div class="card-header fw-semibold">Total selling price by manufacturer</div>
+              <div class="card-body table-responsive">
+                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                  <thead><tr><th>Manufacturer</th><th>Total selling price</th></tr></thead>
+                  <tbody>
+                    {% for row in data.selling_price_by_manufacturer %}
+                      <tr><td><strong>{{ row.manufacturer }}</strong></td><td>{{ row.selling_price|money }}</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="high-price-section" class="dashboard-section mb-5" aria-labelledby="high-price-title">
+            <h2 class="h4 mb-3" id="high-price-title">Vehicles priced above $5,000</h2>
+            <div class="card shadow-sm">
+              <div class="card-header">All dataset columns for matching vehicles</div>
+              <div class="card-body table-responsive">
+                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                  <thead><tr>{% for column in data.high_price_columns %}<th>{{ column|pretty }}</th>{% endfor %}</tr></thead>
+                  <tbody>
+                    {% for row in data.high_price_rows %}
+                      <tr>{% for key, value in row.items %}<td>{{ value }}</td>{% endfor %}</tr>
+                    {% empty %}
+                      <tr><td colspan="{{ data.high_price_columns|length }}">No vehicles above $5,000 match these filters.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         </div>
-      </header>
-      <div class="table-wrap pandas-table frequency-table">{{ frequency_table|safe }}</div>
-    </section>
-
-    <section class="kpis" aria-label="Sales summary">
-      <div class="kpi"><span class="kpi__label">Transactions</span><strong>{{ data.kpis.transactions|num }}</strong></div>
-      <div class="kpi"><span class="kpi__label">Revenue</span><strong>{{ data.kpis.revenue|compact }}</strong></div>
-      <div class="kpi"><span class="kpi__label">Total profit</span><strong>{{ data.kpis.profit|compact }}</strong></div>
-    </section>
-
-    <section class="panel is-active" data-panel="overview" aria-label="Sales overview">
-      <div class="grid">
-        <article class="card span-8">
-          <header class="card__head">
-            <div>
-              <h2 class="card__title">Monthly performance</h2>
-              <p class="card__sub">Sales activity across the year</p>
-            </div>
-            <div class="segmented" data-target="month">
-              <button data-metric="count" class="is-active">Sales</button>
-              <button data-metric="revenue">Revenue</button>
-              <button data-metric="profit">Profit</button>
-            </div>
-          </header>
-          <div class="chart chart--md"><canvas data-chart="month" aria-label="Monthly vehicle sales"></canvas></div>
-        </article>
-
-        <article class="card span-4">
-          <header class="card__head card__head--stack">
-            <h2 class="card__title">Sales by fuel type</h2>
-            <span class="card__sub">Share of transactions</span>
-          </header>
-          <div class="chart chart--donut">
-            <canvas data-chart="fuel" aria-label="Vehicle sales composition by fuel type"></canvas>
-            <div class="donut-center"><strong>{{ data.kpis.transactions|num }}</strong><span>sales</span></div>
-          </div>
-          <table class="legend-table legend-table--full">
-            {% for row in data.fuel_rows %}
-              <tr><td><i class="swatch" data-series="{{ forloop.counter0 }}"></i>{{ row.label|pretty }}</td><td>{{ row.share }}%</td><td>{{ row.count|num }}</td></tr>
-            {% endfor %}
-          </table>
-        </article>
-
-        <article class="card span-6">
-          <header class="card__head"><h2 class="card__title">Annual results</h2></header>
-          <div class="chart chart--md"><canvas data-chart="annual" aria-label="Revenue and cost by year"></canvas></div>
-        </article>
-
-        <article class="card span-6">
-          <header class="card__head"><h2 class="card__title">Top manufacturers by revenue</h2></header>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Manufacturer</th><th>Sales</th><th>Revenue</th></tr></thead>
-              <tbody>
-                {% for row in data.manufacturer_rows|slice:":6" %}
-                  <tr><td><strong>{{ row.label }}</strong></td><td>{{ row.count|num }}</td><td>{{ row.revenue|compact }}</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
-    </section>
-    {% endif %}
-
-  </div>
+      </main>
+    </div>
+  {% endif %}
 </div>
 
-{{ charts|json_script:"chart-data" }}
-{{ selected_year|json_script:"selected-year" }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="{% static 'vehicles/js/dashboard.js' %}?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'vehicles/js/dashboard.js' %}?v=4"></script>
 </body>
 </html>

@@ -2,15 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Simplify the dashboard while keeping a manufacturer frequency table visible at the top without scrolling.
+**Goal:** Remove all graphs and keep the dashboard focused on manufacturer tables and KPI summaries.
 
-**Architecture:** Reuse the existing Django dashboard view, template, CSS, and Chart.js setup. Replace the multi-tab interface with one concise overview, place a filtered frequency table first, and retain a few complementary sales visuals.
+**Architecture:** Reuse the existing Django dashboard view, template, and CSS. Render a filtered frequency table, KPI summary, and manufacturer revenue table without chart libraries or generated graph data.
 
-**Tech Stack:** Django templates, Python/pandas, CSS, JavaScript, Chart.js.
+**Tech Stack:** Django templates, Python/pandas, CSS, JavaScript.
 
 **Spec:** `docs/superpowers/specs/2026-10-27-minimal-dashboard-design.md`
 
 ## Global Constraints
+- Remove all graphs, chart data generation, and chart library references.
 - Keep existing year and manufacturer filtering.
 - Put manufacturer and transaction count at the top, immediately visible.
 - Do not change dataset calculations or add dependencies.
@@ -45,10 +46,11 @@
 
 - [x] Remove tab navigation and detail-heavy Vehicles, Clients, Sales, and Statistics panels.
 - [x] Keep three KPI cards: transactions, revenue, and profit.
-- [x] Keep monthly performance, fuel mix, annual results, and a short manufacturer revenue table as the supporting visuals.
-- [x] Remove JavaScript tab/panel handling that is no longer used while preserving chart rendering and theme switching.
-- [x] Guard the monthly chart's optional total label so the removed label cannot stop chart rendering.
-- [x] Remove styles used only by the deleted tabs and detail sections.
+- [x] Keep the manufacturer revenue table as the supporting detail.
+- [x] Remove chart rendering JavaScript while preserving theme switching.
+- [x] Remove chart library, chart markup, and graph-only styles.
+- [x] Remove graph data generation from the dashboard view and builder.
+- [x] Remove styles used only by deleted detail sections.
 - [x] Preserve the no-results state and responsive layout.
 
 ### Task 3: Review the rendered dashboard
@@ -58,6 +60,6 @@
 - Review: `vehicles/static/vehicles/css/dashboard.css`
 - Review: `vehicles/static/vehicles/js/dashboard.js`
 
-- [x] Inspect the page structure and check that manufacturer frequency precedes KPIs and charts.
-- [x] Check for dangling chart selectors, panel references, and tab-specific code after removing sections.
+- [x] Inspect the page structure and check that manufacturer frequency precedes KPIs and tables.
+- [x] Check that no graph markup, library references, or graph data output remains.
 - [x] No project checks were run because testing was not requested.
