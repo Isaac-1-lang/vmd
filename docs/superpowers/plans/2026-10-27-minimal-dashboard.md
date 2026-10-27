@@ -45,8 +45,10 @@
 
 - [x] Remove tab navigation and detail-heavy Vehicles, Clients, Sales, and Statistics panels.
 - [x] Keep three KPI cards: transactions, revenue, and profit.
-- [x] Keep monthly performance, annual results, and a concise vehicle mix chart/table as the few supporting visuals.
+- [x] Keep monthly performance, fuel mix, annual results, and a short manufacturer revenue table as the supporting visuals.
 - [x] Remove JavaScript tab/panel handling that is no longer used while preserving chart rendering and theme switching.
+- [x] Guard the monthly chart's optional total label so the removed label cannot stop chart rendering.
+- [x] Remove styles used only by the deleted tabs and detail sections.
 - [x] Preserve the no-results state and responsive layout.
 
 ### Task 3: Review the rendered dashboard

@@ -18,7 +18,7 @@ Reduce visual and informational clutter so users can read the vehicle sales dash
 - Use one concise overview with a leading manufacturer frequency table (selected): gives the requested table immediate prominence while retaining a few useful sales visuals.
 
 ## Proposed design
-Use a single overview. Place a compact manufacturer frequency table directly beneath the page title and filters, before KPIs or charts. Include manufacturer and transaction count, with descending frequency order. Follow it with three KPIs (transactions, revenue, and profit), a monthly sales trend, and only a small number of complementary summary charts/tables. Remove the other tabs and their dense statistical views from the dashboard interface. Keep empty-filter messaging and theme styling intact.
+Use a single overview. Place a compact manufacturer frequency table directly beneath the page title and filters, before KPIs or charts. Include manufacturer and transaction count, with descending frequency order. Follow it with three KPIs (transactions, revenue, and profit), a monthly performance chart, a fuel mix chart, annual results, and a short manufacturer revenue table. Remove the other tabs and their dense statistical views and styling from the dashboard interface. Keep empty-filter messaging and theme styling intact.
 
 ## Constraints and implementation calls
 Reuse current template, CSS, JavaScript, and server-provided data. Avoid changing data calculations or installing dependencies. This is a small UI-only change.

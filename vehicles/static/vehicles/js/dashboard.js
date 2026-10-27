@@ -287,7 +287,8 @@
       const metric = state.month;
       const values = D.by_month[metric];
       const fmt = METRIC_FORMAT[metric];
-      document.getElementById("month-total").textContent = fmt.total(values.reduce((a, b) => a + b, 0));
+      const total = document.getElementById("month-total");
+      if (total) total.textContent = fmt.total(values.reduce((a, b) => a + b, 0));
       return new Chart(el, {
         type: "bar",
         data: {
