@@ -132,7 +132,7 @@
           <section id="high-price-section" class="dashboard-section mb-5" aria-labelledby="high-price-title">
             <h2 class="h4 mb-3" id="high-price-title">Vehicles priced above $5,000</h2>
             <div class="card shadow-sm">
-              <div class="card-header">All dataset columns for matching vehicles</div>
+              <div class="card-header">Vehicle and sale details</div>
               <div class="card-body table-responsive">
                 <table class="table table-sm table-striped table-hover align-middle mb-0">
                   <thead><tr><th>Manufacturer</th>{% for column in data.high_price_columns %}<th>{{ column|pretty }}</th>{% endfor %}</tr></thead>
