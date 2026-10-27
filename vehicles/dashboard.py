@@ -38,6 +38,14 @@ def frequency_table(df):
         justify="center",
     )
 
+# Displaying cars with a selling price greater than $12000 in a table format
+def high_value_cars(df):
+    return df[df['selling_price'] > 12000].to_html(classes="table table-bordered table-striped table-sm", index=False)
+# Using groupby to calculate the total selling price by manufacturer and transmission type, and displaying it in a table format
+
+def total_price_by_manufacturer(df):
+    return df.groupby(['manufacturer', 'transmission'])[['selling_price']].sum().to_html(classes="table table-bordered table-striped table-sm")
+
 
 def load_dataset(csv_path):
     """Load and clean the vehicle dataset."""
@@ -117,57 +125,16 @@ def get_manufacturer_rows(df):
     ]
 
 
-def get_selling_price_by_manufacturer(df):
-    totals = (
-        df.groupby("manufacturer", as_index=False)["selling_price"]
-        .sum()
-        .sort_values("selling_price", ascending=False)
-    )
-    return [
-        {
-            "manufacturer": row["manufacturer"],
-            "selling_price": int(row["selling_price"]),
-        }
-        for row in totals.to_dict("records")
-    ]
-
-
-def get_high_price_rows(df):
-    vehicle_columns = [
-        column
-        for column in df.columns
-        if (not column.startswith("client_") or column == "client_retail_date")
-        and column not in {"income_level", "estimated_income"}
-    ]
-    high_price_cars = df.loc[df["selling_price"] > 5000, vehicle_columns]
-    high_price_cars = high_price_cars.sort_values(
-        ["manufacturer", "selling_price"], ascending=[True, False]
-    ).head(100)
-    columns = [column for column in vehicle_columns if column != "manufacturer"]
-    groups = []
-    for manufacturer, rows in high_price_cars.groupby("manufacturer", sort=False):
-        groups.append(
-            {
-                "manufacturer": manufacturer,
-                "rows": rows.drop(columns="manufacturer").to_dict("records"),
-            }
-        )
-    return columns, groups
-
-
 def build_dashboard(df, year=None, manufacturer=None):
     """Build all values shown by the dashboard."""
     df = filter_dashboard_data(df, year=year, manufacturer=manufacturer)
     if df.empty:
         return {"empty": True}
 
-    high_price_columns, high_price_rows = get_high_price_rows(df)
-
     return {
         "empty": False,
         "kpis": get_kpis(df),
         "manufacturer_rows": get_manufacturer_rows(df),
-        "selling_price_by_manufacturer": get_selling_price_by_manufacturer(df),
-        "high_price_columns": high_price_columns,
-        "high_price_rows": high_price_rows,
+        "selling_price_by_manufacturer": total_price_by_manufacturer(df),
+        "high_value_cars": high_value_cars(df),
     }
